@@ -6,6 +6,7 @@ import com.nokiaspstraining.serverspool.demo.models.Server;
 import com.nokiaspstraining.serverspool.demo.repositories.ServerRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.retry.annotation.Retryable;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.persistence.OptimisticLockException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -67,10 +69,11 @@ public class ServerService {
     }
 
     @Transactional(isolation = Isolation.SERIALIZABLE)
+    @Retryable(OptimisticLockException.class)
     public List<String> allocateServer(int size){
 
         List<String> result = new ArrayList<>();
-        Server server = serverRepo.findByAvaStorageGreaterThanEqualAndServerStatusIs(size, Enumerations.ServerStatus.ACTIVE.name());
+        Server server = serverRepo.findByAvaStorageGreaterThanEqualAndServerStatusIs (size, Enumerations.ServerStatus.ACTIVE.name());
         if(server != null){
             server.setAvaStorage(server.getAvaStorage() - size);
             serverRepo.save(server);
