@@ -9,6 +9,7 @@ import com.nokiaspstraining.serverspool.demo.services.ServerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Random;
 
 @RestController
@@ -18,12 +19,12 @@ public class ServerController {
     @Autowired
     private ServerService serverService;
 
-   /* @Autowired
-    private ServerRepo serverRepo;*/
+    @Autowired
+    private ServerRepo serverRepo;
 
     @PostMapping("/allocate/{size}")
     @ResponseBody
-    public int allocateServer(@PathVariable("size") int size){
+    public List<String> allocateServer(@PathVariable("size") int size){
         return serverService.allocate(size);
     }
 
@@ -41,6 +42,12 @@ public class ServerController {
     @DeleteMapping("/delete/{id}")
     public void deleteServer(@PathVariable("id") int id){
         serverService.deleteById(id);
+    }
+
+
+    @GetMapping("/server/{size}")
+    public Server getServer(@PathVariable("size") int size){
+        return serverRepo.findByAvaStorageGreaterThanEqualAndServerStatusIs(size,Enumerations.ServerStatus.ACTIVE.name());
     }
 
 }

@@ -21,6 +21,7 @@ public class SMConfig extends StateMachineConfigurerAdapter<Enumerations.ServerS
             org.slf4j.LoggerFactory.getLogger(SMConfig.class);
 
 
+
     @Override
     public void configure(StateMachineTransitionConfigurer<Enumerations.ServerStatus, Enumerations.ServerEvent> transitions) throws Exception {
         transitions

@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.statemachine.StateMachine;
 import org.springframework.statemachine.access.StateMachineAccess;
 import org.springframework.statemachine.access.StateMachineFunction;
@@ -37,86 +38,72 @@ public class ServerService {
 
 
 
-    public int allocate(int size) {
-        List<String> result;
-        result = allocateServer(size);
-        Server server = serverRepo.findById(Integer.parseInt(result.get(2))).orElseThrow();
-        if(result.get(0).equals("True")){
-            try {
-                Thread.sleep(20000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            activate(server.getKey());
+    public List<String> allocate(int size) {
+        /*List<String> allocation_result;
+        allocation_result = allocateServer(size);
+        List<String> result = new ArrayList<>();
+        Server server = serverRepo.findById(Integer.parseInt(allocation_result.get(2))).orElseThrow();
+        if(allocation_result.get(0).equals("True")){
+            result.add(allocation_result.get(2));
+            result.add("Creating server");
 
         }
-        else if(result.get(0).equals("False")){
-            if(result.get(1).equals("Active")){
-                return server.getKey();
+        else if(allocation_result.get(0).equals("False")){
+            if(allocation_result.get(1).equals("Active")){
+                result.add(allocation_result.get(2));
+                result.add("Active Server");
             }
-            while(true){
-                try {
-                    Thread.sleep(5000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                server = serverRepo.findById(Integer.parseInt(result.get(2))).orElseThrow();
-                if(server.getServerStatus().equals(Enumerations.ServerStatus.ACTIVE)) break;
+            else {
+                result.add(allocation_result.get(2));
+                result.add("Creating Server");
             }
 
 
 
-        }
 
-        return server.getKey();
+        }*/
+
+        return allocateServer(size);
     }
 
-
     @Transactional(isolation = Isolation.SERIALIZABLE)
-    protected List<String> allocateServer(int size){
+    public List<String> allocateServer(int size){
 
-        List<Server> activeServers = new ArrayList<>();
         List<String> result = new ArrayList<>();
-        Iterable<Server> servers = serverRepo.findAll();
-        for (Server server : servers) {
-            if (server.getServerStatus().name().equals("ACTIVE")) {
-                activeServers.add(server);
-            }
+        Server server = serverRepo.findByAvaStorageGreaterThanEqualAndServerStatusIs(size, Enumerations.ServerStatus.ACTIVE.name());
+        if(server != null){
+            server.setAvaStorage(server.getAvaStorage() - size);
+            serverRepo.save(server);
+            result.add("Active Server");
+            result.add(Integer.toString(server.getKey()));
         }
-        for (Server server : activeServers) {
-            if (size <= server.getAvaStorage()) {
+        else {
+            server = serverRepo.findByAvaStorageGreaterThanEqualAndServerStatusIs(size, Enumerations.ServerStatus.CREATING.name());
+
+            if(server != null){
                 server.setAvaStorage(server.getAvaStorage() - size);
                 serverRepo.save(server);
-                result.add("False");
-                result.add("Active");
+                result.add("Creating Server");
                 result.add(Integer.toString(server.getKey()));
-                return result;
+
+            }
+            else {
+                server = create(size);
+                result.add("Creating Server");
+                result.add(Integer.toString(server.getKey()));
+                Server finalServer = server;
+                new Thread(() -> {
+                    try {
+                        Thread.sleep(20000);
+                        activate(finalServer.getKey());
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }).start();
             }
         }
-        servers = serverRepo.findAll();
-        for (Server server : servers) {
-            if (size <= server.getAvaStorage()) {
-                if (server.getServerStatus().equals(Enumerations.ServerStatus.CREATING)){
-                    result.add("False");
-                    result.add("Creating");
-                    result.add(Integer.toString(server.getKey()));
-                    server.setAvaStorage(server.getAvaStorage() - size);
-                    serverRepo.save(server);
-                    return result;
-                }
-                server.setAvaStorage(server.getAvaStorage() - size);
-                serverRepo.save(server);
-                result.add("False");
-                result.add("Active");
-                result.add(Integer.toString(server.getKey()));
-                return result;
-            }
-        }
-        Server server = create(size);
-        result.add("True");
-        result.add("Active");
-        result.add(Integer.toString(server.getKey()));
         return result;
+
 
     }
 

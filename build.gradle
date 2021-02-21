@@ -26,8 +26,9 @@ dependencies {
 	compile group: 'com.aerospike', name: 'spring-data-aerospike', version: '2.4.2.RELEASE'
 	compile group: 'org.springframework.statemachine', name: 'spring-statemachine-core', version: '2.2.2.RELEASE'
 	compileOnly("org.projectlombok:lombok:1.16.10")
+	compile group: 'org.springframework.retry', name: 'spring-retry', version: '1.2.2.RELEASE'
 
-	
+
 	//runtimeOnly 'mysql:mysql-connector-java'
 	//implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	//compile group: 'org.hibernate', name: 'hibernate-core', version: '5.4.27.Final'
